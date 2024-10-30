@@ -1,0 +1,45 @@
+-- Create Users table
+CREATE TABLE Users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  email  TEXT NOT NULL UNIQUE
+);
+
+-- Create Accounts table
+CREATE TABLE Accounts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  account_name TEXT,
+  FOREIGN KEY (user_id) REFERENCES Users(id)
+);
+
+-- Create Transactions table
+CREATE TABLE Transactions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  account_id INTEGER NOT NULL,
+  date TEXT,
+  amount REAL,
+  description TEXT,
+  category TEXT,
+  FOREIGN KEY (account_id) REFERENCES Accounts(id)
+);
+
+-- Create Budgets table
+CREATE TABLE Budgets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  category TEXT,
+  limit_amount REAL,
+  FOREIGN KEY (user_id) REFERENCES Users(id)
+);
+
+-- Create Goals table
+CREATE TABLE Goals (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  goal_name TEXT,
+  target_amount REAL,
+  current_amount REAL DEFAULT 0,
+  FOREIGN KEY (user_id) REFERENCES Users(id)
+)
