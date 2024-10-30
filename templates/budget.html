@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Budget Tracker{% endblock %}
+
+{% block content %}
+<h1>Manage your Budgets</h1>
+
+<section class="budget-list">
+  <h2>Your Budgets</h2>
+  {% if budgets %}
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Limit Amount</th>
+          <th>Amount Spent</th>
+          <th>Remaining</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for budget in budgets %}
+          <tr>
+            <td>{{ budget.category }}</td>
+            <td>${{ budget.limit_amount }}</td>
+            <td>${{ budget.amount_spent }}</td>
+            <td>${{ budget.limit_amount - budget.amount_spent }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No budgets set. Add a new budget below!</p>
+  {% endif %}
+</section>
+
+<section class="add-budget-form">
+  <h2>Add a New Budget</h2>
+  <form action="/budget" method="POST">
+    <label for="category">Category:</label>
+    <input type="text" id="category" name="category" required>
+
+    <label for="limit_amount">Limit Amount:</label>
+    <input type="number" name="limit_amount" id="limit_amount" steps="0.01" required>
+
+    <button type="submit">Add Budget</button>
+  </form>
+</section>
+{% endblock %}
