@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for,session
+from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 
 def init_db():
@@ -10,14 +11,15 @@ def init_db():
 
   conn.commit()
   conn.close()
+  print("Database initialized successfully")
+
+def get_db_connection():
+  conn = sqlite3.connect('database.db')
+  conn.row_factory = sqlite3.Row
+  return conn
 
 app = Flask(__name__)
-
-# Sample data tp simulate budgets
-budgets = [
-  {"category": "Groceries", "limit_amount": 300.00, "amount_spent": 120.50},
-  {"category": "Rent", "limit_amount": 1000.00, "amount_spent": 1000.00}
-]
+app.secret_key = '@$hKetchum12'
 
 ##### USER ROUTES ######
 @app.route('/')
@@ -39,17 +41,22 @@ def logout():
 ##### BUDGET ROUTES #####
 @app.route('/budget', methods=['GET','POST'])
 def budget():
+  conn = get_db_connection()
+  cursor = conn.cursor()
+
   if request.method == 'POST':
     category = request.form['category']
     limit_amount = float(request.form['limit_amount'])
 
-    budgets.append({
-      "category": category,
-      "limit_amount": limit_amount,
-      "amount_spent": 0.00
-    })
-
+    cursor.execute(
+      "INSERT INTO Budgets (category, limit_amount, amount_spent) VALUES (?,?,?)",
+      (category, limit_amount, 0.00)
+    )
+    conn.commit()
     return redirect(url_for('budget'))
+
+  budgets = cursor.execute("SELECT * FROM Budgets").fetchall()
+  conn.close()
   return render_template('budget.html',budgets=budgets)
 
 
