@@ -3,6 +3,48 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<h1>Welcome to Your Dashboard</h1>
+<h1>Welcome Back, {{ username }} </h1>
+
+<div>
+  <h3>Financial Summary</h3>
+  <p><strong>Total Budget Limit:</strong>${{ total_limit }}</p>
+  <p><strong>Total Spent:</strong>${{ total_spent }}</p>
+  <p><strong>Total Remaining:</strong>${{ total_remaining }}</p>
+</div>
+
+<div>
+  <h3>Your Budget</h3>
+  {% if budgets %}
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Limit Amount</th>
+          <th>Amount Spent</th>
+          <th>Remaining</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for budget in budgets %}
+          <tr>
+            <td>{{ budget['category'] }}</td>
+            <td>{{ budget['limit_amount'] }}</td>
+            <td>{{ budget['amount_spent'] }}</td>
+            <td>{{ budget['limit_amount'] - budget['amount_spent'] }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>You have no budgets set. <a href="{{ url_for('budget') }}">Add a Budget</a></p>
+  {% endif %}
+</div>
+<div>
+  <h3>Quick Links</h3>
+  <ul>
+    <li><a href="{{ url_for('budget') }}">Manage Budgets</a></li>
+    <li><a href="{{ url_for('logout') }}">Logout</a></li>
+  </ul>
+</div>
 <p>Here you can view your recent transactions, budgets and goals.</p>
 {% endblock %}
