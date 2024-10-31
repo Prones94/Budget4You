@@ -10,8 +10,11 @@
     <header>
         <nav class="navbar">
             <a href="{{ url_for('home') }}">Home</a>
-            <a href="{{ url_for('login') }}">Login</a>
-            <a href="{{ url_for('logout') }}">Logout</a>
+            {% if 'user_id' in session %}
+                <a href="{{ url_for('logout') }}">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+            {% endif %}
         </nav>
     </header>
 
