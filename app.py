@@ -115,31 +115,32 @@ def register():
 
 
 ##### BUDGET ROUTES #####
-@app.route('/budget', methods=['GET','POST'])
+@app.route('/budget', methods=['GET', 'POST'])
 def budget():
-  if 'user_id' not in session:
-    return redirect(url_for('login'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
 
-  conn = get_db_connection()
-  cursor = conn.cursor()
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-  if request.method == 'POST':
-    category = request.form['category']
-    limit_amount = float(request.form['limit_amount'])
+    if request.method == 'POST':
+        category = request.form.get('category')
+        limit_amount = float(request.form.get('limit_amount'))
+        user_id = session['user_id'] 
+
+        cursor.execute(
+            "INSERT INTO Budgets (user_id, category, limit_amount, amount_spent) VALUES (?, ?, ?, ?)",
+            (user_id, category, limit_amount, 0.00)
+        )
+        conn.commit()
+
     user_id = session['user_id']
+    cursor.execute("SELECT * FROM Budgets WHERE user_id = ?", (user_id,))
+    budgets = cursor.fetchall()
+    conn.close()
 
-    cursor.execute(
-      "INSERT INTO Budgets (category, limit_amount, amount_spent) VALUES (?,?,?)",
-      (category, limit_amount, limit_amount, 0.00)
-    )
-    conn.commit()
+    return render_template('budget.html', budgets=budgets)
 
-  user_id = session['user_id']
-  cursor.execute("SELECT * FROM Budgets WHERE user_id = ?", (user_id,))
-  budgets = cursor.execute("SELECT * FROM Budgets").fetchall()
-  conn.close()
-
-  return render_template('budget.html',budgets=budgets)
 
 @app.route('/budget/edit/<int:budget_id>', methods=['GET', 'POST'])
 def edit_budget(budget_id):
