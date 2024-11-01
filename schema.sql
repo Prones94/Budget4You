@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS Accounts (
   FOREIGN KEY (user_id) REFERENCES Users(id)
 );
 
--- Transactions Table
+-- Transactions Table (for Accounts)
 CREATE TABLE IF NOT EXISTS Transactions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   account_id INTEGER NOT NULL,
@@ -43,4 +43,14 @@ CREATE TABLE IF NOT EXISTS Goals (
   target_amount REAL,
   current_amount REAL DEFAULT 0,
   FOREIGN KEY (user_id) REFERENCES Users(id)
+);
+
+-- BudgetTransaction Table for (tracking transactions within budgets)
+CREATE TABLE IF NOT EXISTS BudgetTransaction (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  budget_id INTEGER NOT NULL,
+  amount REAL NOT NULL,
+  date TEXT NOT NULL,
+  description TEXT,
+  FOREIGN KEY (budget_id) REFERENCES Budgets(id)
 );
