@@ -128,7 +128,7 @@ def budget():
 
     if form.validate_on_submit():
       category = form.category.data
-      limit_amount = form.limit_amount.data
+      limit_amount = float(form.limit_amount.data)
       user_id = session['user_id']
       cursor.execute(
           "INSERT INTO Budgets (user_id, category, limit_amount, amount_spent) VALUES (?, ?, ?, ?)",
@@ -143,7 +143,7 @@ def budget():
     budgets = cursor.fetchall()
     conn.close()
 
-    return render_template('budget.html', budgets=budgets)
+    return render_template('budget.html', budgets=budgets, form=form)
 
 
 @app.route('/budget/edit/<int:budget_id>', methods=['GET', 'POST'])
@@ -195,6 +195,7 @@ def add_transaction(budget_id):
   if 'user_id' not in session:
     return redirect(url_for('login'))
 
+  form = TransactionForm()
   conn = get_db_connection()
   cursor = conn.cursor()
 
@@ -205,10 +206,10 @@ def add_transaction(budget_id):
     conn.close()
     return "Budget not found or access denied", 404
 
-  if request.method == 'POST':
-    amount = float(request.form.get('amount'))
-    date = request.form.get('date')
-    description = request.form.get('description')
+  if form.validate_on_submit():
+    amount = float(form.amount.data)
+    date = form.date.data
+    description = form.description.data
 
     cursor.execute(
       "INSERT INTO BudgetTransactions (budget_id, amount, date, description) VALUES (?,?,?,?)",
@@ -221,28 +222,29 @@ def add_transaction(budget_id):
     return redirect(url_for('view_transactions', budget_id=budget_id))
 
   conn.close()
-  return render_template('add_transaction.html', budget=budget)
+  return render_template('add_transaction.html', budget=budget, form=form)
 
 @app.route('/budget/<int:budget_id>/transactions')
 def view_transactions(budget_id):
-  if 'user_id' not in session:
-    return redirect(url_for('login'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
 
-  conn = get_db_connection()
-  cursor = conn.cursor()
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-  cursor.execute("SELECT * FROM Budgets WHERE id = ? AND user_id = ?", (budget_id, session['user_id']))
-  budget = cursor.fetchone()
+    cursor.execute("SELECT * FROM Budgets WHERE id = ? AND user_id = ?", (budget_id, session['user_id']))
+    budget = cursor.fetchone()
 
-  if not budget:
+    if not budget:
+        conn.close()
+        return "Budget not found or access denied.", 404
+
+    cursor.execute("SELECT * FROM BudgetTransactions WHERE budget_id = ?", (budget_id,))
+    transactions = cursor.fetchall()
     conn.close()
-    return "Budget not found or access denied", 404
 
-  cursor.execute("SELECT * FROM BudgetTransactions WHERE budget_id = ?", (budget_id,))
-  transactions = cursor.fetchall()
-  conn.close()
+    return render_template('view_transactions.html', budget=budget, transactions=transactions)
 
-  return render_template('view_transactions.html', budget=budget, transactions=transactions)
 
 
 if __name__ == '__main__':

@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS Goals (
 );
 
 -- BudgetTransaction Table for (tracking transactions within budgets)
-CREATE TABLE IF NOT EXISTS BudgetTransaction (
+CREATE TABLE IF NOT EXISTS BudgetTransactions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   budget_id INTEGER NOT NULL,
   amount REAL NOT NULL,

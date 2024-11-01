@@ -58,3 +58,13 @@ button:hover {
   background-color: #f8d7da;
   color: #721c24;
 }
+
+.errors {
+  color: #d9534f;
+  font-size: 0.9em;
+  margin: 0.5em 0;
+}
+
+.errors li {
+  list-style: none;
+}
