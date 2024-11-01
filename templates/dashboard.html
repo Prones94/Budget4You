@@ -5,6 +5,11 @@
 {% block content %}
 <h1>Welcome Back, {{ username }} </h1>
 
+<h2>Spending Overview</h2>
+<div class="chart-container">
+  <canvas id="spendingChart"></canvas>
+</div>
+
 <div>
   <h3>Financial Summary</h3>
   <p><strong>Total Budget Limit:</strong>${{ total_limit }}</p>
@@ -47,4 +52,9 @@
   </ul>
 </div>
 <p>Here you can view your recent transactions, budgets and goals.</p>
+
+<script src="{{ url_for('static', filename='chart.js') }}"></script>
+<script>
+    renderSpendingChart({{ labels | tojson }}, {{ values | tojson }});
+</script>
 {% endblock %}
