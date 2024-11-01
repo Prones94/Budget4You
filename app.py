@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for,session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
+from forms import BudgetForm, TransactionForm
 
 def init_db():
   conn = sqlite3.connect('database.db')
@@ -20,6 +21,7 @@ def get_db_connection():
 
 app = Flask(__name__)
 app.secret_key = '@$hKetchum12'
+app.config['WTF_CSRF_SECRET_KEY'] = 'financekey123'
 
 ##### USER ROUTES ######
 @app.route('/')
@@ -120,21 +122,21 @@ def budget():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
+    form = BudgetForm()
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    if request.method == 'POST':
-        category = request.form.get('category')
-        limit_amount = float(request.form.get('limit_amount'))
-        user_id = session['user_id']
-
-        cursor.execute(
-            "INSERT INTO Budgets (user_id, category, limit_amount, amount_spent) VALUES (?, ?, ?, ?)",
-            (user_id, category, limit_amount, 0.00)
-        )
-        conn.commit()
-
-        flash("Budget added successfully!", "success")
+    if form.validate_on_submit():
+      category = form.category.data
+      limit_amount = form.limit_amount.data
+      user_id = session['user_id']
+      cursor.execute(
+          "INSERT INTO Budgets (user_id, category, limit_amount, amount_spent) VALUES (?, ?, ?, ?)",
+          (user_id, category, limit_amount, 0.00)
+      )
+      conn.commit()
+      flash("Budget added successfully!", "success")
+      return redirect(url_for('budget'))
 
     user_id = session['user_id']
     cursor.execute("SELECT * FROM Budgets WHERE user_id = ?", (user_id,))
