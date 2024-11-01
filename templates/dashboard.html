@@ -45,6 +45,39 @@
   {% endif %}
 </div>
 <div>
+  <h3>Your Financial Goals</h3>
+  {% if goals %}
+    <table>
+      <thead>
+        <tr>
+          <th>Goal Name</th>
+          <th>Target Amount</th>
+          <th>Current Amount</th>
+          <th>Progress</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for goal in goals %}
+          <tr>
+            <td>{{ goal['goal_name'] }}</td>
+            <td>${{ goal['target_amount'] }}</td>
+            <td>${{ goal['current_amount'] }}</td>
+            <td>
+              {% set progress = (goal['current_amount'] / goal['target_amount']) * 100 %}
+              <div class="progress-bar-container">
+                <div class="progress-bar" style="width: {{progress | round(2) }}%;"></div>
+              </div>
+              {{ progress | round(2) }}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>You have no goals set <a href="{{ url_for('add_goal') }}">Add a Goal</a></p>
+  {% endif %}
+</div>
+<div>
   <h3>Quick Links</h3>
   <ul>
     <li><a href="{{ url_for('budget') }}">Manage Budgets</a></li>

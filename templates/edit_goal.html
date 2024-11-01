@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Goal{% endblock %}
+
+{% block content %}
+  <h2>Edit Goal</h2>
+
+  <form action="{{ url_for('edit_goal', goal_id=goal_id) }}" method="POST">
+    {{ form.hidden_tag() }}
+    {{ form.goal_name.label }} {{ form.goal_name() }}
+    {{ form.target_amount.label }} {{ form.target_amount() }}
+  </form>
+{% endblock %}

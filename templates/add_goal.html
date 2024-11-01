@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Goal{% endblock %}
+
+{% block content %}
+  <h2>Add a New Financial Goal</h2>
+
+  <form action="{{ url_for('add_goal') }}" method="POST">
+    {{ form.hidden_tag() }}
+    {{ form.goal_name.label }} {{ form.goal_name() }}
+    {{ form.target_amount.label }} {{ form.target_amount() }}
+    <button type="submit">Add Goal</button>
+  </form>
+{% endblock %}
