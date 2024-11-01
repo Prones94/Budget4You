@@ -36,3 +36,25 @@ button {
 button:hover {
   background-color: #45a049;
 }
+
+.flash-messages {
+  list-style: none;
+  padding: 0;
+  margin: 1em 0;
+}
+
+.flash-message {
+  padding: 0.5em 1em;
+  margin-bottom: 0.5em;
+  border-radius: 4px;
+}
+
+.flash-message.success {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.flash-message.info {
+  background-color: #f8d7da;
+  color: #721c24;
+}

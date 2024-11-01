@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for,session
+from flask import Flask, render_template, request, redirect, url_for,session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 
@@ -126,13 +126,15 @@ def budget():
     if request.method == 'POST':
         category = request.form.get('category')
         limit_amount = float(request.form.get('limit_amount'))
-        user_id = session['user_id'] 
+        user_id = session['user_id']
 
         cursor.execute(
             "INSERT INTO Budgets (user_id, category, limit_amount, amount_spent) VALUES (?, ?, ?, ?)",
             (user_id, category, limit_amount, 0.00)
         )
         conn.commit()
+
+        flash("Budget added successfully!", "success")
 
     user_id = session['user_id']
     cursor.execute("SELECT * FROM Budgets WHERE user_id = ?", (user_id,))
@@ -155,7 +157,7 @@ def edit_budget(budget_id):
 
   if not budget:
     conn.close()
-    return "Budfget not found or access denied", 400
+    return "Budget not found or access denied", 400
 
   if request.method == 'POST':
     category = request.form.get('category')
@@ -183,7 +185,62 @@ def delete_budget(budget_id):
   conn.commit()
   conn.close()
 
+  flash("Budget deleted successfully!", "info")
   return redirect(url_for('budget'))
+
+@app.route('/budget/<int:budget_id>/add_transaction', methods=['GET', 'POST'])
+def add_transaction(budget_id):
+  if 'user_id' not in session:
+    return redirect(url_for('login'))
+
+  conn = get_db_connection()
+  cursor = conn.cursor()
+
+  cursor.execute("SELECT * FROM Budgets WHERE id = ? AND user_id = ?", (budget_id, session['user_id']))
+  budget = cursor.fetchone()
+
+  if not budget:
+    conn.close()
+    return "Budget not found or access denied", 404
+
+  if request.method == 'POST':
+    amount = float(request.form.get('amount'))
+    date = request.form.get('date')
+    description = request.form.get('description')
+
+    cursor.execute(
+      "INSERT INTO BudgetTransactions (budget_id, amount, date, description) VALUES (?,?,?,?)",
+      (budget_id, amount,date, description)
+    )
+    conn.commit()
+    conn.close()
+
+    flash("Transaction added successfully!", "success")
+    return redirect(url_for('view_transactions', budget_id=budget_id))
+
+  conn.close()
+  return render_template('add_transaction.html', budget=budget)
+
+@app.route('/budget/<int:budget_id>/transactions')
+def view_transactions(budget_id):
+  if 'user_id' not in session:
+    return redirect(url_for('login'))
+
+  conn = get_db_connection()
+  cursor = conn.cursor()
+
+  cursor.execute("SELECT * FROM Budgets WHERE id = ? AND user_id = ?", (budget_id, session['user_id']))
+  budget = cursor.fetchone()
+
+  if not budget:
+    conn.close()
+    return "Budget not found or access denied", 404
+
+  cursor.execute("SELECT * FROM BudgetTransactions WHERE budget_id = ?", (budget_id,))
+  transactions = cursor.fetchall()
+  conn.close()
+
+  return render_template('view_transactions.html', budget=budget, transactions=transactions)
 
 
 if __name__ == '__main__':

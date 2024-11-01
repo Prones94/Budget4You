@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Transactions for {{ budget['category'] }}{% endblock %}
+
+{% block content %}
+  <h2>Transactions for {{ budget['category'] }}</h2>
+
+  <a href="{{ url_for('add_transaction', budget_id=budget['id']) }}">Add Transaction</a>
+
+  {% if transaction %}
+    <table>
+      <thead>
+        <tr>
+          <th>Amount</th>
+          <th>Date</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for transaction in transactions %}
+          <tr>
+            <td>${{ transaction['amount'] }}</td>
+            <td>${{ transaction['date'] }}</td>
+            <td>${{ transaction['description'] }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No transaction found for this budget.</p>
+  {% endif %}
+
+  <a href="{{ url_for('budget') }}">Back to Budgets</a>
+{% endblock %}

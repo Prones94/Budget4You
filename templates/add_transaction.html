@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Add Transaction{% endblock %}
+
+{% block content %}
+  <h2>Add Transaction to {{ budget['category'] }}</h2>
+
+  <form action="{{ url_for('add_transaction', budget_id=budget['id']) }}" method="POST">
+    <label for="amount">Amount:</label>
+    <input type="number" name="amount" id="amount" step="0.01" required>
+
+    <label for="date">Date:</label>
+    <input type="date" name="date" id="date" required>
+
+    <label for="description">Description:</label>
+    <input type="text" name="description" id="description">
+
+    <button type="submit">Add Transaction</button>
+  </form>
+
+  <a href="{{ url_for('view_transactions', budget_id=budget['id']) }}">Back to Transactions</a>
+{% endblock %}
