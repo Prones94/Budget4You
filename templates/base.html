@@ -19,7 +19,7 @@
         </nav>
     </header>
 
-    {% with messages=get_flash_messages(with_categories=True) %}
+    {% with messages=get_flashed_messages(with_categories=True) %}
         {% if messages %}
             <ul class="flash-messages">
                 {% for category, message in messages %}
