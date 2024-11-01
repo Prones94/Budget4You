@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Add Funds to Goal{% endblock %}
+
+{% block content %}
+  <h2>Add Funds to {{ goal['goal_name'] }}</h2>
+  <p>Target Amount: ${{ goal['target_amount'] }}</p>
+  <p>Current Amount: ${{ goal['current_amount'] }}</p>
+
+  <form action="{{ url_for('add_funds', goal_id=goal['id']) }}" method="POST">
+      <label for="amount">Amount to Add:</label>
+      <input type="number" name="amount" id="amount" step="0.01" required>
+      <button type="submit">Add Funds</button>
+  </form>
+{% endblock %}

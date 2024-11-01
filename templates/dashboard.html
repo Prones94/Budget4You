@@ -54,6 +54,7 @@
           <th>Target Amount</th>
           <th>Current Amount</th>
           <th>Progress</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -68,6 +69,9 @@
                 <div class="progress-bar" style="width: {{progress | round(2) }}%;"></div>
               </div>
               {{ progress | round(2) }}
+            </td>
+            <td>
+              <a href="{{ url_for('add_funds', goal_id=goal['id']) }}">Add Funds</a>
             </td>
           </tr>
         {% endfor %}
