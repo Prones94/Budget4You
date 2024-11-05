@@ -52,5 +52,6 @@ CREATE TABLE IF NOT EXISTS BudgetTransactions (
   amount REAL NOT NULL,
   date TEXT NOT NULL,
   description TEXT,
+  category TEXT,
   FOREIGN KEY (budget_id) REFERENCES Budgets(id)
 );

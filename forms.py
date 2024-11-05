@@ -12,3 +12,7 @@ class TransactionForm(FlaskForm):
   date = DateField('Date', validators=[DataRequired()], format='%Y-%m-%d')
   description = TextAreaField('Description', validators=[Length(max=200)])
 
+
+class GoalForm(FlaskForm):
+  goal_name = StringField('Goal Name', validators=[DataRequired(), Length(max=50)])
+  target_amount = DecimalField('Target Amount', validators=[DataRequired(), NumberRange(min=1)], places=2)

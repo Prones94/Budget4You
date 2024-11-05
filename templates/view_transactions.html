@@ -7,6 +7,23 @@
 
 <a href="{{ url_for('add_transaction', budget_id=budget['id']) }}">Add Transaction</a>
 
+<form action="{{ url_for('view_transactions', budget_id=budget['id']) }}" method="GET">
+    <label for="category">Category:</label>
+    <input type="text" name="category" id="category" value="{{ category or '' }}">
+
+    <label for="description">Description:</label>
+    <input type="text" name="description" id="description" value="{{ description or '' }}">
+
+    <label for="start_date">Start Date:</label>
+    <input type="date" name="start_date" id="start_date" value="{{ start_date or '' }}">
+
+    <label for="end_date">End Date:</label>
+    <input type="date" name="end_date" id="end_date" value="{{ end_date or '' }}">
+
+    <button type="submit">Filter</button>
+</form>
+
+
 {% if transactions %}
     <table>
         <thead>
@@ -14,6 +31,7 @@
                 <th>Amount</th>
                 <th>Date</th>
                 <th>Description</th>
+                {% if category %}<th>Category</th>{% endif %}
             </tr>
         </thead>
         <tbody>
@@ -22,6 +40,7 @@
                 <td>${{ transaction['amount'] }}</td>
                 <td>{{ transaction['date'] }}</td>
                 <td>{{ transaction['description'] }}</td>
+                {% if category %}<td>{{ transaction['category'] }}</td>{% endif %}
             </tr>
             {% endfor %}
         </tbody>

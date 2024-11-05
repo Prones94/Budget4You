@@ -10,6 +10,8 @@
   <canvas id="spendingChart"></canvas>
 </div>
 
+
+
 <div>
   <h3>Financial Summary</h3>
   <p><strong>Total Budget Limit:</strong>${{ total_limit }}</p>
@@ -43,6 +45,10 @@
   {% else %}
     <p>You have no budgets set. <a href="{{ url_for('budget') }}">Add a Budget</a></p>
   {% endif %}
+</div>
+<h2>Goal Progress</h2>
+<div class="chart-container">
+  <canvas id="goalChart"></canvas>
 </div>
 <div>
   <h3>Your Financial Goals</h3>
@@ -91,8 +97,15 @@
 </div>
 <p>Here you can view your recent transactions, budgets and goals.</p>
 
-<script src="{{ url_for('static', filename='chart.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard_charts.js') }}" ></script>
+
 <script>
     renderSpendingChart({{ labels | tojson }}, {{ values | tojson }});
+    renderGoalChart(
+        {{ goal_names | tojson }},
+        {{ current_amounts | tojson }},
+        {{ target_amounts | tojson }}
+    );
 </script>
+
 {% endblock %}
