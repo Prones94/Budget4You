@@ -1,3 +1,4 @@
+from webbrowser import get
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
@@ -260,6 +261,48 @@ def view_transactions(budget_id):
       end_date=end_date
   )
 
+@app.route('/budget/<int:budget_id>/edit_transaction/<int:transaction_id>', methods=['GET','POST'])
+def edit_transaction(budget_id, transaction_id):
+  """Edit an existing transaction"""
+  if 'user_id' not in session:
+    return redirect(url_for('login'))
+
+  conn = get_db_connection()
+  cursor = conn.cursor()
+
+  cursor.execute(
+    """
+    SELECT * FROM BudgetTransactions
+    WHERE id = ? AND budget_id = ?
+    """, (transaction_id, budget_id)
+  )
+  transaction = cursor.fetchone()
+
+  if not transaction:
+    conn.close()
+    flash("Transaction not found or access denied", "danger")
+    return redirect(url_for('view_transactions', budget_id=budget_id))
+
+  if request.method == 'POST':
+    amount = float(request.form['amount'])
+    date = request.form['date']
+    description = request.form['description']
+
+    cursor.execute(
+      """
+      UPDATE Budget Transactions
+      SET amount = ?, date = ?, description = ?
+      WHERE id = ? AND budget_id = ?
+      """, (amount, date, description, transaction_id, budget_id)
+    )
+    conn.commit()
+    conn.close()
+
+    flash("Transaction updated successfully", "success")
+    return redirect(url_for('view_transactions', budget_id=budget_id))
+  conn.close()
+  return render_template('edit_transaction.html', transaction=transaction)
+
 
 ##### DASHBOARD ROUTES #####
 @app.route('/dashboard')
@@ -397,37 +440,6 @@ def add_goal():
 
   return render_template('add_goal.html', form=form)
 
-@app.route('/goals/edit/<int:goal_id>', methods=['GET', 'POST'])
-def edit_goal(goal_id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Goals WHERE id = ? AND user_id = ?", (goal_id, session['user_id']))
-    goal = cursor.fetchone()
-
-    if not goal:
-        conn.close()
-        return "Goal not found or access denied", 404
-
-    form = GoalForm(data={'goal_name': goal['goal_name'], 'target_amount': goal['target_amount']})
-    if form.validate_on_submit():
-        goal_name = form.goal_name.data
-        target_amount = float(form.target_amount.data)
-
-        cursor.execute("UPDATE Goals SET goal_name = ?, target_amount = ? WHERE id = ? AND user_id = ?",
-        (goal_name, target_amount, goal_id, session['user_id']))
-        conn.commit()
-        conn.close()
-
-        flash("Goal updated successfully!", "success")
-        return redirect(url_for('view_goals'))
-
-    conn.close()
-    return render_template('edit_goal.html', form=form, goal_id=goal_id)
-
-
 @app.route('/goals/delete/<int:goal_id>', methods=['POST'])
 def delete_goal(goal_id):
   if 'user_id' not in session:
@@ -474,6 +486,50 @@ def add_funds(goal_id):
     return redirect(url_for('dashboard'))
   conn.close()
   return render_template('add_funds.html', goal=goal)
+
+@app.route('/goals/edit/<int:goal_id>', methods=['GET','POST'])
+def edit_goal(goal_id):
+  """Edit an existing goal"""
+  if 'user_id' not in session:
+    return redirect(url_for('login'))
+
+  conn = get_db_connection()
+  cursor = conn.cursor()
+
+  cursor.execute(
+    """
+    SELECT * FROM Goals
+    WHERE id = ? AND user_id = ?
+    """, (goal_id, session['user_id'])
+  )
+  goal = cursor.fetchone()
+
+  if not goal:
+    conn.close()
+    flash("Goal not found or access denied", "danger")
+    return redirect(url_for('view_goals'))
+
+  form = GoalForm(data={'goal_name':goal['goal_name'], 'target_amount': goal['target_amount']})
+
+  if form.validate_on_submit():
+    goal_name = form.goal_name.data
+    target_amount = float(form.target_amount.data)
+
+    cursor.execute(
+      """
+      UPDATE Goals
+      SET goal_name = ?,
+      target_amount = ? WHERE id = ? AND user_id = ?
+      """, (goal_name, target_amount, goal_id, session['user_id'])
+    )
+    conn.commit()
+    conn.close()
+
+    flash("Goal updated successfully", "success")
+    return redirect(url_for('view_goals'))
+
+  conn.close()
+  return render_template('edit_goal.html', goal=goal)
 
 if __name__ == '__main__':
   init_db()
