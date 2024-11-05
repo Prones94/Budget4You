@@ -517,8 +517,7 @@ def edit_goal(goal_id):
 
     cursor.execute(
       """
-      UPDATE Goals
-      SET goal_name = ?,
+      UPDATE Goals SET goal_name = ?,
       target_amount = ? WHERE id = ? AND user_id = ?
       """, (goal_name, target_amount, goal_id, session['user_id'])
     )
@@ -529,7 +528,7 @@ def edit_goal(goal_id):
     return redirect(url_for('view_goals'))
 
   conn.close()
-  return render_template('edit_goal.html', goal=goal)
+  return render_template('edit_goal.html', form=form, goal_id=goal_id)
 
 if __name__ == '__main__':
   init_db()
