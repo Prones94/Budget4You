@@ -37,7 +37,9 @@
         <tbody>
             {% for transaction in transactions %}
             <tr>
-                <td>${{ transaction['amount'] }}</td>
+                <td>
+                    <a href="{{ url_for('transaction_detail', budget_id=transaction['budget_id'], transaction_id=transaction['id'])}}">${{ transaction['amount'] }}</a>
+                </td>
                 <td>{{ transaction['date'] }}</td>
                 <td>{{ transaction['description'] }}</td>
                 <td>
