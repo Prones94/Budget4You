@@ -224,6 +224,9 @@ def view_transactions(budget_id):
   if 'user_id' not in session:
       return redirect(url_for('login'))
 
+  page = int(request.args.get('page', 1))
+  per_page = 10
+
   conn = get_db_connection()
   cursor = conn.cursor()
 
@@ -232,9 +235,7 @@ def view_transactions(budget_id):
 
   if not budget:
       conn.close()
-      print("Current session user_id:", session.get('user_id'))
-
-      print("Debug: Budget not found or user access denied.")
+      flash("Budget not found or access denied", "danger")
       return "Budget not found or access denied.", 404
 
   base_query = "SELECT * FROM BudgetTransactions WHERE budget_id = ?"
@@ -261,14 +262,23 @@ def view_transactions(budget_id):
       base_query += " AND date <= ?"
       params.append(end_date)
 
-  cursor.execute(base_query, params)
+  offset = (page - 1) * per_page
+  paginated_query = f"{base_query} LIMIT ? OFFSET ?"
+  params.extend([per_page, offset])
+
+  cursor.execute(paginated_query, params)
   transactions = cursor.fetchall()
+
+  total_count = cursor.execute(f"SELECT COUNT(*) FROM ({base_query})", params[:-2]).fetchone()[0]
+  total_pages = (total_count + per_page - 1)
   conn.close()
 
   return render_template(
       'view_transactions.html',
       budget=budget,
       transactions=transactions,
+      current_page=page,
+      total_pages=total_pages,
       category=category,
       description=description,
       start_date=start_date,
