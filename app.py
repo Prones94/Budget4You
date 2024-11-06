@@ -245,6 +245,11 @@ def view_transactions(budget_id):
   description = request.args.get('description')
   start_date = request.args.get('start_date')
   end_date = request.args.get('end_date')
+  sort_by = request.args.get('sort_by', 'date')
+  order = request.args.get('order', 'asc')
+
+  base_query = "SELECT * FROM BudgetTransactions WHERE budget_id = ?"
+  params = [budget_id]
 
   if category:
       base_query += " AND category = ?"
@@ -261,6 +266,9 @@ def view_transactions(budget_id):
   if end_date:
       base_query += " AND date <= ?"
       params.append(end_date)
+
+  order_by_clause = f"ORDER BY {sort_by} {order.upper()}"
+  base_query = f"{base_query} {order_by_clause}"
 
   offset = (page - 1) * per_page
   paginated_query = f"{base_query} LIMIT ? OFFSET ?"
@@ -282,7 +290,9 @@ def view_transactions(budget_id):
       category=category,
       description=description,
       start_date=start_date,
-      end_date=end_date
+      end_date=end_date,
+      sort_by=sort_by,
+      order=order
   )
 
 @app.route('/budget/<int:budget_id>/edit_transaction/<int:transaction_id>', methods=['GET','POST'])

@@ -33,6 +33,12 @@
         <option value="description" {% if request.args.get('sort-by') == 'description' %}selected{% endif %}>Description</option>
     </select>
 
+    <label for="order">Order:</label>
+    <select name="order" id="order">
+        <option value="asc" {% if order == 'asc' %}selected{% endif %}>Ascending</option>
+        <option value="desc" {% if order == 'asc' %}selected{% endif %}>Descending</option>
+    </select>
+
     <button type="submit">Apply Filter</button>
 </form>
 
@@ -70,6 +76,16 @@
 {% else %}
     <p>No transactions found for this budget.</p>
 {% endif %}
+
+<div class="pagination">
+    {% if current_page > 1 %}
+        <a href="{{ url_for('view_transactions', budget_id=budget['id'], page=current_page -1) }}">Previous</a>
+    {% endif %}
+    <span>Page {{ current_page }} of {{ total_pages }}</span>
+    {% if current_page < total_pages %}
+        <a href="{{ url_for('view_transactions', budget_id=budget['id'], page=current_page + 1)}}">Next</a>
+    {% endif %}
+</div>
 
 <a href="{{ url_for('budget') }}">Back to Budgets</a>
 {% endblock %}
