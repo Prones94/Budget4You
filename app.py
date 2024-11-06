@@ -494,7 +494,7 @@ def add_goal():
       return redirect(url_for('view_goals'))
     elif request.method == 'POST':
       flash("Please correct the form errors", "danger")
-  except:
+  except sqlite3.Error as e:
     conn.rollback()
     flash(f"An error occurred while setting the goal: {e}", "danger")
   finally:
