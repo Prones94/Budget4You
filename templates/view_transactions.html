@@ -7,12 +7,18 @@
 
 <a href="{{ url_for('add_transaction', budget_id=budget['id']) }}">Add Transaction</a>
 
-<form action="{{ url_for('view_transactions', budget_id=budget['id']) }}" method="GET">
+<form action="{{ url_for('view_transactions', budget_id=budget['id']) }}" method="GET" class="filter-form">
     <label for="category">Category:</label>
     <input type="text" name="category" id="category" value="{{ category or '' }}">
 
     <label for="description">Description:</label>
     <input type="text" name="description" id="description" value="{{ description or '' }}">
+
+    <label for="min_amount">Min Amount:</label>
+    <input type="number" name="min_amount" id="min_amount" step="0.01" value="{{ request.args.get('min_amount','')}}">
+
+    <label for="max_amount">Max Amount:</label>
+    <input type="number" name="max_amount" id="max_amount" step="0.01" value={{ request.args.get('max_amount', '') }}>
 
     <label for="start_date">Start Date:</label>
     <input type="date" name="start_date" id="start_date" value="{{ start_date or '' }}">
@@ -20,7 +26,14 @@
     <label for="end_date">End Date:</label>
     <input type="date" name="end_date" id="end_date" value="{{ end_date or '' }}">
 
-    <button type="submit">Filter</button>
+    <label for="sort_by">Sort By:</label>
+    <select name="sort_by" id="sort_by">
+        <option value="date" {% if request.args.get('sort_by') == 'date' %}selected{% endif %}>Date</option>
+        <option value="amount" {% if request.args.get('sort_by') == 'amount' %}selected{% endif %}>Amount</option>
+        <option value="description" {% if request.args.get('sort-by') == 'description' %}selected{% endif %}>Description</option>
+    </select>
+
+    <button type="submit">Apply Filter</button>
 </form>
 
 
