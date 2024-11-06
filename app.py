@@ -60,69 +60,72 @@ def login():
 
 @app.route('/logout')
 def logout():
+  """Logouts user"""
   session.clear()
   return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
+  """Route to register a new user"""
+  if request.method == 'POST':
+      username = request.form.get('username')
+      email = request.form.get('email')
+      password = request.form.get('password')
 
-        if not username or not email or not password:
-            return "All fields are required.", 400
+      if not username or not email or not password:
+          return "All fields are required.", 400
 
-        password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+      password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
+      conn = get_db_connection()
+      cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM Users WHERE username = ? OR email = ?", (username, email))
-        existing_user = cursor.fetchone()
+      cursor.execute("SELECT * FROM Users WHERE username = ? OR email = ?", (username, email))
+      existing_user = cursor.fetchone()
 
-        if existing_user:
-            conn.close()
-            return "Username or email already exists."
+      if existing_user:
+          conn.close()
+          return "Username or email already exists."
 
-        cursor.execute(
-            "INSERT INTO Users (username, password_hash, email) VALUES (?, ?, ?)",
-            (username, password_hash, email)
-        )
-        conn.commit()
-        conn.close()
+      cursor.execute(
+          "INSERT INTO Users (username, password_hash, email) VALUES (?, ?, ?)",
+          (username, password_hash, email)
+      )
+      conn.commit()
+      conn.close()
 
-        return redirect(url_for('login'))
-    return render_template('register.html')
+      return redirect(url_for('login'))
+  return render_template('register.html')
 
 ##### BUDGET ROUTES #####
 @app.route('/budget', methods=['GET', 'POST'])
 def budget():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+  """Route to view and add budgets"""
+  if 'user_id' not in session:
+      return redirect(url_for('login'))
 
-    form = BudgetForm()
-    conn = get_db_connection()
-    cursor = conn.cursor()
+  form = BudgetForm()
+  conn = get_db_connection()
+  cursor = conn.cursor()
 
-    if form.validate_on_submit():
-      category = form.category.data
-      limit_amount = float(form.limit_amount.data)
-      user_id = session['user_id']
-      cursor.execute(
-          "INSERT INTO Budgets (user_id, category, limit_amount, amount_spent) VALUES (?, ?, ?, ?)",
-          (user_id, category, limit_amount, 0.00)
-      )
-      conn.commit()
-      flash("Budget added successfully!", "success")
-      return redirect(url_for('budget'))
-
+  if form.validate_on_submit():
+    category = form.category.data
+    limit_amount = float(form.limit_amount.data)
     user_id = session['user_id']
-    cursor.execute("SELECT * FROM Budgets WHERE user_id = ?", (user_id,))
-    budgets = cursor.fetchall()
-    conn.close()
+    cursor.execute(
+        "INSERT INTO Budgets (user_id, category, limit_amount, amount_spent) VALUES (?, ?, ?, ?)",
+        (user_id, category, limit_amount, 0.00)
+    )
+    conn.commit()
+    flash("Budget added successfully!", "success")
+    return redirect(url_for('budget'))
 
-    return render_template('budget.html', budgets=budgets, form=form)
+  user_id = session['user_id']
+  cursor.execute("SELECT * FROM Budgets WHERE user_id = ?", (user_id,))
+  budgets = cursor.fetchall()
+  conn.close()
+
+  return render_template('budget.html', budgets=budgets, form=form)
 
 
 @app.route('/budget/edit/<int:budget_id>', methods=['GET', 'POST'])
@@ -156,6 +159,7 @@ def edit_budget(budget_id):
 
 @app.route('/budget/delete/<int:budget_id>', methods=['POST'])
 def delete_budget(budget_id):
+  """Delete a budget by ID"""
   if 'user_id' not in session:
     return redirect(url_for('login'))
 
@@ -170,9 +174,9 @@ def delete_budget(budget_id):
   return redirect(url_for('budget'))
 
 ##### TRANSACTIONS ROUTES #####
-
 @app.route('/budget/<int:budget_id>/add_transaction', methods=['GET', 'POST'])
 def add_transaction(budget_id):
+  """Add a transaction to a budget"""
   if 'user_id' not in session:
     return redirect(url_for('login'))
 
@@ -207,6 +211,7 @@ def add_transaction(budget_id):
 
 @app.route('/budget/<int:budget_id>/transactions', methods=['GET', 'POST'])
 def view_transactions(budget_id):
+  """View transactions for a specific budget"""
   if 'user_id' not in session:
       return redirect(url_for('login'))
 
@@ -302,6 +307,29 @@ def edit_transaction(budget_id, transaction_id):
     return redirect(url_for('view_transactions', budget_id=budget_id))
   conn.close()
   return render_template('edit_transaction.html', transaction=transaction)
+
+@app.route('/budget/<int:budget_id>/delete_transaction/<int:transaction_id>', methods=['POST'])
+def delete_transaction(budget_id, transaction_id):
+  """Delete an existing transaction"""
+  if 'user_id' not in session:
+      return redirect(url_for('login'))
+
+  conn = get_db_connection()
+  cursor = conn.cursor()
+  cursor.execute("SELECT * FROM BudgetTransactions WHERE id = ? AND budget_id = ?", (transaction_id, budget_id))
+  transaction = cursor.fetchone()
+
+  if not transaction:
+      conn.close()
+      flash("Transaction not found or access denied", "danger")
+      return redirect(url_for('view_transactions', budget_id=budget_id))
+
+  cursor.execute("DELETE FROM BudgetTransactions WHERE id = ?", (transaction_id,))
+  conn.commit()
+  conn.close()
+
+  flash("Transaction deleted successfully", "success")
+  return redirect(url_for('view_transactions', budget_id=budget_id))
 
 
 ##### DASHBOARD ROUTES #####
@@ -447,6 +475,15 @@ def delete_goal(goal_id):
 
   conn = get_db_connection()
   cursor = conn.cursor()
+
+  cursor.execute("SELECT * FROM Goals WHERE id = ? AND user_id = ?", (goal_id, session['user_id']))
+  goal = cursor.fetchone()
+
+  if not goal:
+    conn.close()
+    flash("Goal not found or access denied", "danger")
+    return redirect(url_for('view_goals'))
+
   cursor.execute("DELETE FROM Goals WHERE id = ? AND user_id = ?", (goal_id, session['user_id']))
   conn.commit()
   conn.close()
