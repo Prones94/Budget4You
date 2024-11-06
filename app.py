@@ -108,22 +108,26 @@ def budget():
   conn = get_db_connection()
   cursor = conn.cursor()
 
-  if form.validate_on_submit():
-    category = form.category.data
-    limit_amount = float(form.limit_amount.data)
-    user_id = session['user_id']
-    cursor.execute(
-        "INSERT INTO Budgets (user_id, category, limit_amount, amount_spent) VALUES (?, ?, ?, ?)",
-        (user_id, category, limit_amount, 0.00)
-    )
-    conn.commit()
-    flash("Budget added successfully!", "success")
-    return redirect(url_for('budget'))
-
-  user_id = session['user_id']
-  cursor.execute("SELECT * FROM Budgets WHERE user_id = ?", (user_id,))
-  budgets = cursor.fetchall()
-  conn.close()
+  try:
+    if form.validate_on_submit():
+      category = form.category.data
+      limit_amount = float(form.limit_amount.data)
+      user_id = session['user_id']
+      cursor.execute(
+          "INSERT INTO Budgets (user_id, category, limit_amount, amount_spent) VALUES (?, ?, ?, ?)",
+          (user_id, category, limit_amount, 0.00)
+      )
+      conn.commit()
+      flash("Budget added successfully!", "success")
+      return redirect(url_for('budget'))
+    elif request.method == 'POST':
+      flash("Please correct the form errors.", "danger")
+  except sqlite3.Error as e:
+    conn.rollback()
+    flash(f"An error occurred while adding the budget: {e}", "danger")
+  finally:
+    budgets = cursor.execute("SELECT * FROM Budgets WHERE user_id = ?", (session['user_id'],)).fetchall()
+    conn.close()
 
   return render_template('budget.html', budgets=budgets, form=form)
 
@@ -184,29 +188,34 @@ def add_transaction(budget_id):
   conn = get_db_connection()
   cursor = conn.cursor()
 
-  cursor.execute("SELECT * FROM Budgets WHERE id = ? AND user_id = ?", (budget_id, session['user_id']))
-  budget = cursor.fetchone()
+  try:
+    cursor.execute("SELECT * FROM Budgets WHERE id = ? AND user_id = ?", (budget_id, session['user_id']))
+    budget = cursor.fetchone()
 
-  if not budget:
+    if not budget:
+      conn.close()
+      return "Budget not found or access denied", 404
+
+    if form.validate_on_submit():
+      amount = float(form.amount.data)
+      date = form.date.data
+      description = form.description.data
+
+      cursor.execute(
+        "INSERT INTO BudgetTransactions (budget_id, amount, date, description) VALUES (?,?,?,?)",
+        (budget_id, amount,date, description)
+      )
+      conn.commit()
+      flash("Transaction added successfully!", "success")
+      return redirect(url_for('view_transactions', budget_id=budget_id))
+    elif request.method == 'POST':
+      flash("Please correct the form errors", "danger")
+  except sqlite3.Error as e:
+    conn.rollback()
+    flash(f"An error occurred while adding the transaction: {e}", "danger")
+  finally:
     conn.close()
-    return "Budget not found or access denied", 404
 
-  if form.validate_on_submit():
-    amount = float(form.amount.data)
-    date = form.date.data
-    description = form.description.data
-
-    cursor.execute(
-      "INSERT INTO BudgetTransactions (budget_id, amount, date, description) VALUES (?,?,?,?)",
-      (budget_id, amount,date, description)
-    )
-    conn.commit()
-    conn.close()
-
-    flash("Transaction added successfully!", "success")
-    return redirect(url_for('view_transactions', budget_id=budget_id))
-
-  conn.close()
   return render_template('add_transaction.html', budget=budget, form=form)
 
 @app.route('/budget/<int:budget_id>/transactions', methods=['GET', 'POST'])
@@ -331,6 +340,25 @@ def delete_transaction(budget_id, transaction_id):
   flash("Transaction deleted successfully", "success")
   return redirect(url_for('view_transactions', budget_id=budget_id))
 
+@app.route('/budget/<int:budget_id>/transaction/<int:transaction_id>')
+def transaction_detail(budget_id, transaction_id):
+  """View detailed information for a specific transaction"""
+  if 'user_id' not in session:
+    return redirect(url_for('login'))
+  conn = get_db_connection()
+  cursor = conn.cursor()
+  cursor.execute(
+    "SELECT * FROM BudgetTransactions WHERE id = ? AND budget_id = ?",
+    (transaction_id, budget_id)
+  )
+  transaction = cursor.fetchone()
+  conn.close()
+
+  if not transaction:
+    flash("Transaction not found or access denied", "danger")
+    return redirect(url_for('view_transactions', budget_id=budget_id))
+  return render_template('transaction_detail.html', transaction=transaction)
+
 
 ##### DASHBOARD ROUTES #####
 @app.route('/dashboard')
@@ -451,20 +479,26 @@ def add_goal():
     return redirect(url_for('login'))
 
   form = GoalForm()
-  if form.validate_on_submit():
-    goal_name = form.goal_name.data
-    target_amount = float(form.target_amount.data)
-    user_id = session['user_id']
+  conn = get_db_connection()
+  cursor = conn.cursor()
+  try:
+    if form.validate_on_submit():
+      goal_name = form.goal_name.data
+      target_amount = float(form.target_amount.data)
+      user_id = session['user_id']
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO Goals (user_id, goal_name, target_amount, current_amount) VALUES (?,?,?,?)", (user_id, goal_name, target_amount, 0))
+      cursor.execute("INSERT INTO Goals (user_id, goal_name, target_amount, current_amount) VALUES (?,?,?,?)", (user_id, goal_name, target_amount, 0))
 
-    conn.commit()
+      conn.commit()
+      flash("Goal added successfully!", "success")
+      return redirect(url_for('view_goals'))
+    elif request.method == 'POST':
+      flash("Please correct the form errors", "danger")
+  except:
+    conn.rollback()
+    flash(f"An error occurred while setting the goal: {e}", "danger")
+  finally:
     conn.close()
-
-    flash("Goal added successfully!", "success")
-    return redirect(url_for('view_goals'))
 
   return render_template('add_goal.html', form=form)
 

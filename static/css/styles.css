@@ -95,3 +95,29 @@ button:hover {
   color: white;
   border-radius: 5px;
 }
+
+.transaction-details {
+  margin-bottom: 20px;
+}
+
+.transaction-details p {
+  font-size: 1.1em;
+  margin: 8px 0;
+}
+
+.transaction-actions {
+  margin-bottom: 20px;
+}
+
+.btn {
+  padding: 8px 12px;
+  margin-right: 8px;
+  background-color: #007bff;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 4px;
+}
+
+.btn-danger {
+  background-color: #dc3545;
+}
