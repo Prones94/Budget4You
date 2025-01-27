@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="plaid-container">
+    <button id="link-button">Link Account</button>
+  </div>
+
+  <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+  <script>
+    let handler = Plaid.create({
+      token: "{{ link_token }}",
+      onSuccess: function(public_token, metadata){
+        fetch('/exchnage_token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ public_token: public_token })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.access_token) {
+            alert('Account linked successfully!')
+          } else {
+            alert('Error linking account: ' + (data.error || 'Unknown error'))
+          }
+        })
+        .catch(err => {
+          console.error('Error exchanging token:', 'err');
+        })
+      },
+      onExit: function(err, metadata){
+        if (err != null){
+          console.error('Plaid Link exited with and error:', err);
+        }
+      }
+    });
+
+    document.getElementById('link-button').addEventListener('click', function(){
+      handler.open()
+    })
+  </script>
+{% endblock %}

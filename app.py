@@ -1,9 +1,38 @@
 from webbrowser import get
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 from forms import BudgetForm, TransactionForm, GoalForm
 from datetime import datetime
+import os
+import plaid
+from plaid.api import plaid_api
+from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
+from plaid.model.link_token_create_request import LinkTokenCreateRequest
+from plaid.model.products import Products
+from plaid.model.country_code import CountryCode
+from plaid.model.link_token_create_request import LinkTokenCreateRequest
+from plaid import ApiClient, configuration
+import json
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Plaid configuration
+PLAID_CLIENT_ID = os.getenv('PLAID_CLIENT_ID')
+PLAID_SECRET = os.getenv('PLAID_SECRET')
+PLAID_ENV = ('PLAID_ENV','sandbox')
+
+configuration = plaid.Configuration(
+  host=plaid.Environment.Sandbox,
+  api_key={
+    'clientId':PLAID_CLIENT_ID,
+    'secret':PLAID_SECRET,
+  }
+)
+api_client = plaid.ApiClient(configuration)
+client=plaid_api.PlaidApi(api_client)
+
 
 def init_db():
   conn = sqlite3.connect('database.db')
@@ -14,7 +43,6 @@ def init_db():
 
   conn.commit()
   conn.close()
-  print("Database initialized successfully")
 
 def get_db_connection():
   conn = sqlite3.connect('database.db')
@@ -25,12 +53,131 @@ app = Flask(__name__)
 app.secret_key = '@$hKetchum12'
 app.config['WTF_CSRF_SECRET_KEY'] = 'financekey123'
 
+##### PLAID ROUTES #####
+@app.route('/index')
+def index():
+  """Render the main page with Plaid Link"""
+  return render_template('plaid_link.html')
+
+@app.route('/link_account')
+def link_account():
+  """Render the Plaid Link page"""
+  if 'user_id' not in session:
+    return redirect(url_for('login'))
+  try:
+    request_data = LinkTokenCreateRequest(
+      user = {
+        "client_user_id": str(session.get('user_id')),
+      },
+      client_name="Budg3t4You",
+      products=[Products.AUTH, Products.TRANSACTIONS],
+      country_codes=[CountryCode.US],
+      language='en',
+      webhook='https://yourapp.com/webhook'
+    )
+    response = client.link_token_create(request_data)
+    link_token = response['link_token']
+    return render_template('plaid_link.html', link_token=link_token)
+  except plaid.ApiException as e:
+    flash(f"Error generating link token: {e}", "danger")
+    return redirect(url_for('dashboard'))
+
+@app.route('/get_access_token', methods=['POST'])
+def get_access_token():
+  public_token = request.json.get('public_token')
+  if not public_token:
+    return jsonify({"error": "Public token is required"}), 400
+  try:
+    exchange_request = ItemPublicTokenExchangeRequest(public_token=public_token)
+    exchange_response = client.item_public_token_exchange(exchange_request)
+    access_token = exchange_response['access_token']
+    session['access_token'] = access_token
+    return jsonify({'access_token': access_token})
+  except plaid.ApiException as e:
+    error_response = json.loads(e.body)
+    return jsonify({'error': error_response['error_message']}), 400
+
+@app.route('/accounts', methods=['GET'])
+def get_accounts():
+  access_token = session.get('access_token')
+  if not access_token:
+    return redirect(url_for('index'))
+  try:
+    response = client.Accounts.get(access_token)
+    return jsonify(response)
+  except Exception as e:
+    return jsonify({'error': str(e)}), 400
+
+
+@app.route('/exchange_token', methods=['POST'])
+def exchange_token():
+  """Exchange the public token for an access token"""
+  data = request.get_json()
+  public_token = data.get('public_token')
+
+  if not public_token:
+    return jsonify({"error": "public_token is required"}), 400
+  try:
+    exchange_request = ItemPublicTokenExchangeRequest(public_token=public_token)
+    exchange_response = client.Item.public_token.exchange(exchange_request)
+    access_token = exchange_response['access_token']
+    item_id = exchange_response['item_id']
+    session['access_token'] = access_token
+    return jsonify({'access_token': access_token, "item_id": item_id})
+  except Exception as e:
+    return jsonify*({'error': str(e)}), 400
+
+@app.route('/create_link_token', methods=['POST'])
+def create_link_token():
+  try:
+    request = LinkTokenCreateRequest(
+      products=[Products['transactions']],
+      client_name="Budg3t4You",
+      country_codes=[CountryCode.US],
+      language='en',
+      user={
+        "client_user_id":str(session.get['user_id'])
+      }
+    )
+    response = client.link_token_create(request)
+    return jsonify(response.to_dict())
+  except plaid.ApiException as e:
+    return jsonify({"error":str(e)})
+
+@app.route('/api/exchange_public_token', methods=['POST'])
+def exchange_public_token():
+  public_token = request.json.get('public_token')
+  try:
+    exchange_request = ItemPublicTokenExchangeRequest(public_token=public_token)
+    exchange_response = client.item_public_token_exchange(exchange_request)
+    access_token = exchange_response['access_token']
+    session['access_token'] = access_token
+    return jsonify({"access_token":access_token})
+  except plaid.ApiException as e:
+    return jsonify({"error": str(e)})
+
+@app.route('/api/transactions', methods=['GET'])
+def get_transactions():
+  access_token = session.get('access_token')
+  if not access_token:
+    return jsonify({"error": "Access token not found"}), 400
+
+  try:
+    response = client.transactions_get({
+      'access_token': access_token,
+      'start_date': '2023-01-01',
+      'end_date': '2023-12-31'
+    })
+    return jsonify (response.to_dict())
+  except plaid.ApiException as e:
+    return jsonify({"error": str(e)})
+
 ##### USER ROUTES ######
 @app.route('/')
 def home():
   """Home Page - Dashboard"""
   if 'user_id' not in session:
-    return redirect(url_for('home.html'))
+    return redirect(url_for('login'))
   return redirect(url_for('dashboard'))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -54,7 +201,7 @@ def login():
             session['username'] = user['username']
             return redirect(url_for('home'))
         else:
-            return "Invalid username or password."
+            flash("Invalid username or password.", "danger")
     return render_template('login.html')
 
 
@@ -94,6 +241,7 @@ def register():
       conn.commit()
       conn.close()
 
+      flash("Registration successful!", "success")
       return redirect(url_for('login'))
   return render_template('register.html')
 
@@ -383,101 +531,101 @@ def transaction_detail(budget_id, transaction_id):
 ##### DASHBOARD ROUTES #####
 @app.route('/dashboard')
 def dashboard():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+  """Render user dashboard"""
+  if 'user_id' not in session:
+      return redirect(url_for('login'))
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
+  conn = get_db_connection()
+  cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT COALESCE(SUM(limit_amount), 0) AS total_limit,
-               COALESCE(SUM(amount_spent), 0) AS total_spent
-        FROM Budgets
-        WHERE user_id = ?
-    """, (session['user_id'],))
-    summary = cursor.fetchone()
-    total_limit = summary['total_limit'] if summary else 0
-    total_spent = summary['total_spent'] if summary else 0
-    total_remaining = total_limit - total_spent
+  cursor.execute("""
+      SELECT COALESCE(SUM(limit_amount), 0) AS total_limit,
+              COALESCE(SUM(amount_spent), 0) AS total_spent
+      FROM Budgets
+      WHERE user_id = ?
+  """, (session['user_id'],))
+  summary = cursor.fetchone()
+  total_limit = summary['total_limit'] if summary else 0
+  total_spent = summary['total_spent'] if summary else 0
+  total_remaining = total_limit - total_spent
 
-    print("Total Limit:", total_limit)
-    print("Total Spent:", total_spent)
-    print("Total Remaining", total_remaining)
+  cursor.execute("""
+    SELECT strftime('%Y-%m', date) AS month, SUM(amount) AS total_spent
+    FROM BudgetTransactions
+    WHERE budget_id IN (SELECT id FROM Budgets WHERE user_id = ?)
+    GROUP BY month
+    ORDER BY month
+  """, (session['user_id'],))
+  monthly_spending = cursor.fetchall()
+  months = [row['month'] for row in monthly_spending]
+  spending_values = [row['total_spent'] for row in monthly_spending]
 
-    cursor.execute("""
-        SELECT B.category, COALESCE(SUM(T.amount), 0) AS total_spent
-        FROM Budgets AS B
-        LEFT JOIN BudgetTransactions AS T ON B.id = T.budget_id
-        WHERE B.user_id = ?
-        GROUP BY B.category
-    """, (session['user_id'],))
-    category_data = cursor.fetchall()
-    labels = [row['category'] for row in category_data]
-    values = [row['total_spent'] for row in category_data]
+  cursor.execute("""
+      SELECT B.category, COALESCE(SUM(T.amount), 0) AS total_spent
+      FROM Budgets AS B
+      LEFT JOIN BudgetTransactions AS T ON B.id = T.budget_id
+      WHERE B.user_id = ?
+      GROUP BY B.category
+  """, (session['user_id'],))
+  category_data = cursor.fetchall()
+  labels = [row['category'] for row in category_data]
+  values = [row['total_spent'] for row in category_data]
 
-    print("Caegory Data:", [dict(row) for row in category_data])
 
-    cursor.execute("""
-        SELECT strftime('%Y-%m', date) AS month, SUM(amount) AS total_spent
-        FROM BudgetTransactions
-        WHERE budget_id IN (SELECT id FROM Budgets WHERE user_id = ?)
-        GROUP BY month
-        ORDER BY month
-    """, (session['user_id'],))
-    monthly_spending = cursor.fetchall()
-    months = [row['month'] for row in monthly_spending]
-    spending_values = [row['total_spent'] for row in monthly_spending]
+  cursor.execute("""
+      SELECT strftime('%Y-%m', date) AS month, SUM(amount) AS total_spent
+      FROM BudgetTransactions
+      WHERE budget_id IN (SELECT id FROM Budgets WHERE user_id = ?)
+      GROUP BY month
+      ORDER BY month
+  """, (session['user_id'],))
+  monthly_spending = cursor.fetchall()
+  months = [row['month'] for row in monthly_spending]
+  spending_values = [row['total_spent'] for row in monthly_spending]
 
-    print("Monthly Spending:", [dict(row) for row in monthly_spending])
 
-    cursor.execute("""
-        SELECT B.category, B.limit_amount AS budgeted, COALESCE(SUM(T.amount), 0) AS actual_spent
-        FROM Budgets AS B
-        LEFT JOIN BudgetTransactions AS T ON B.id = T.budget_id
-        WHERE B.user_id = ?
-        GROUP BY B.category
-    """, (session['user_id'],))
-    budget_vs_actual = cursor.fetchall()
-    categories = [row['category'] for row in budget_vs_actual]
-    budgeted_values = [row['budgeted'] for row in budget_vs_actual]
-    actual_spent_values = [row['actual_spent'] for row in budget_vs_actual]
+  cursor.execute("""
+      SELECT B.category, B.limit_amount AS budgeted, COALESCE(SUM(T.amount), 0) AS actual_spent
+      FROM Budgets AS B
+      LEFT JOIN BudgetTransactions AS T ON B.id = T.budget_id
+      WHERE B.user_id = ?
+      GROUP BY B.category
+  """, (session['user_id'],))
+  budget_vs_actual = cursor.fetchall()
+  categories = [row['category'] for row in budget_vs_actual]
+  budgeted_values = [row['budgeted'] for row in budget_vs_actual]
+  actual_spent_values = [row['actual_spent'] for row in budget_vs_actual]
 
-    print("Budget vs Actual", [dict(row) for row in budget_vs_actual])
+  cursor.execute("SELECT * FROM Budgets WHERE user_id = ?", (session['user_id'],))
+  budgets = cursor.fetchall()
 
-    cursor.execute("SELECT * FROM Budgets WHERE user_id = ?", (session['user_id'],))
-    budgets = cursor.fetchall()
+  cursor.execute("SELECT * FROM Goals WHERE user_id = ?", (session['user_id'],))
+  goals = cursor.fetchall()
+  goal_names = [goal['goal_name'] for goal in goals]
+  current_amounts = [goal['current_amount'] for goal in goals]
+  target_amounts = [goal['target_amount'] for goal in goals]
 
-    print("Budgets:", [dict(row) for row in budgets])
+  conn.close()
 
-    cursor.execute("SELECT * FROM Goals WHERE user_id = ?", (session['user_id'],))
-    goals = cursor.fetchall()
-    goal_names = [goal['goal_name'] for goal in goals]
-    current_amounts = [goal['current_amount'] for goal in goals]
-    target_amounts = [goal['target_amount'] for goal in goals]
-
-    print("Goals:", [dict(row) for row in goals])
-
-    conn.close()
-
-    return render_template(
-        'dashboard.html',
-        username=session.get('username', 'User'),
-        labels=labels,
-        values=values,
-        total_limit=total_limit,
-        total_spent=total_spent,
-        total_remaining=total_remaining,
-        budgets=budgets,
-        goals=goals,
-        goal_names=goal_names,
-        current_amounts=current_amounts,
-        target_amounts=target_amounts,
-        months=months,
-        spending_values=spending_values,
-        categories=categories,
-        budgeted_values=budgeted_values,
-        actual_spent_values=actual_spent_values
-    )
+  return render_template(
+      'dashboard.html',
+      username=session.get('username', 'User'),
+      labels=labels,
+      values=values,
+      total_limit=total_limit,
+      total_spent=total_spent,
+      total_remaining=total_remaining,
+      budgets=budgets,
+      goals=goals,
+      goal_names=goal_names,
+      current_amounts=current_amounts,
+      target_amounts=target_amounts,
+      months=months,
+      spending_values=spending_values,
+      categories=categories,
+      budgeted_values=budgeted_values,
+      actual_spent_values=actual_spent_values
+  )
 
 ##### GOALS ROUTES #####
 @app.route('/goals')
