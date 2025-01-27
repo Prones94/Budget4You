@@ -109,6 +109,7 @@ The project is deployed at: [https://yourwebsiteurl.com](https://yourwebsiteurl.
    - on MacOS/Linux:
    ```bash
    source venv/bin/activate
+   ```
    - on Windows:
    ```bash
    venv\Scripts\activate
