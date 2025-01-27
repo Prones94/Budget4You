@@ -1,56 +1,104 @@
-# Capstone Project One
+# **Personal Finance Dashboard**
 
-We have broken down the Capstone Project into easy-to-follow steps. Each step of the capstone contains a link with instructions for that step. Here’s a quick overview of what you’ll do for each step of your capstone project:
+**Live Site URL**: [https://yourwebsiteurl.com](https://yourwebsiteurl.com)
 
-1. Step One: Initial Project Ideas: You’ll pick up to 3 project ideas to propose to your mentor and the Springboard community. You’ll also explore some potential APIs.
-2. Step Two: Project Proposal: For this step, you’ll write a proposal for the site you want to build. This will help your mentor better understand your chosen capstone project idea.
-3. Step Three: Schema Design and API Selection: After your mentor approves of your capstone project proposal, you’ll figure out the database design of your application and which API you’ll be using.
-4. Step Four: Coding User Flows: Once you’ve figured out what you’re building, you’ll write the code to implement it. It’s important to think about what you want a user’s experience to be like as they navigate your site.
-5. Step Five: Polishing Your Application: Once you have the core functionality implemented, you’ll focus on additional UI enhancements and styling for your application.
-6. Step Six: Documenting and Submission: You’ve done a lot of work so now it’s time to show your mentor your progress! Create a README in markdown, make sure your GitHub is organized, and submit your finalized project.
+## **About the Website**
 
-## Overview
+The Personal Finance Dashboard is a web application designed to help users manage their budgets, track financial goals, and monitor transactions. The platform provides an intuitive interface for individuals to gain better control of their finances by offering tools to track spending, set financial goals, and analyze trends over time.
 
-For your first Capstone Project, you’ll build a database-driven website off an external
-API of your choice. Your finished capstone will be an integral part of your portfolio; it will demonstrate to potential employers everything you’ve learned from this course.
+---
 
-We want you to work on a challenging project that will incorporate all of the back-end
-skills you’ve been developing and some of your front-end skills from the last section.
-The goal of this project isn’t to create something that’s never been done before. You
-could potentially create a website similar to one that already exists, or use a popular
-API. That being said, we do encourage you to be creative when building your site. You’re free to choose any API you’d like to use and we encourage you to tap into your
-imagination throughout the project.
+## **Features**
 
-There is a term in software development called CRUD - Create, Read, Update, Delete. This refers to all of the basic operations that a relational database performs. Your website should have more functionality than simple CRUD.
+### **1. Budget Management**
+- **What it does**: Users can create, edit, and delete budget categories, set spending limits, and view the amount spent versus the remaining balance.
+- **Why implemented**: Budgeting is a cornerstone of financial planning, enabling users to allocate their resources effectively and avoid overspending.
 
-## Examples
+### **2. Financial Goals**
+- **What it does**: Allows users to set financial goals with a target amount, track progress, and add funds to their goals.
+- **Why implemented**: Helps users focus on saving for specific objectives, such as buying a car, going on vacation, or creating an emergency fund.
 
-There are thousands of free, publically available APIs. If you love cars, you can pick
-from dozens of automotive APIs to build something that will reflect your passion. If you’re more into history, look into an API that lists the nobility of Europe. If you love sports, build a site about India’s top cricketers or your local football league.
+### **3. Invoice Upload for Transactions**
+- **What it does**: Users can upload bank statements in CSV or Excel format to automatically import and categorize transactions.
+- **Why implemented**: Provides an alternative to Plaid API for integrating financial data, offering users more control and privacy.
 
-Let’s give you an example of what a site could look like. Say you choose an API like The
-Movie Database, your site could have a landing page saying “Welcome To MyMovieDB” and a separate page that displays a sortable list of all the movies in the API. This would be CRUD.
+### **4. Spending Analytics**
+- **What it does**: Visualizes user spending through charts, such as doughnut charts for category breakdowns and bar charts for goal progress.
+- **Why implemented**: Helps users quickly interpret financial trends and make informed decisions.
 
-You could implement various filtering methods - to filter based on an actor, a director,
-the year the movie was released, etc. When you click on the record associated with the movie, you could redirect a user to a separate page that displays all of the data
-associated with that movie.
+### **5. Quick Links**
+- **What it does**: Provides users with easy access to manage budgets, view goals, and log out.
+- **Why implemented**: Simplifies navigation and enhances user experience.
 
-Now let’s talk about bells and whistles. If you were to implement ONE feature like
-creating sharable lists of your favorite movies, finding and playing a trailer for the movie on-page, or a simple “recommendation system” that would recommend new movies based on similarities to movies you liked, this would go beyond CRUD. A simple
-“recommendation system” would be along the lines of, if you like Big Daddy with Adam
-Sandler, recommending other Adam Sandler comedies from the 90s or recommending
-movies his co-stars like Steve Buscemi starred in. This does not mean creating a
-complicated system from scratch like Netflix.
+### **6. Plaid API Integration (Disabled)**
+- **What it does**: Links bank accounts to automatically fetch and sync transactions.
+- **Why implemented**: Intended to automate data import and reduce manual effort, though currently disabled due to alternative upload functionality.
 
-It is better to pick a project that errs on the side of simple and boring than a complex
-project with a million moving parts you can get stuck in.
+---
 
-[Here is an example of a previous project.](https://github.com/juliahazer/chart-my-team)
+## **User Flow**
 
-## Guidelines
+1. **Registration/Login**:
+   - New users sign up with a username, email, and password.
+   - Returning users log in to access their dashboard.
 
-1. You will use the following technologies in this project: Python/Flask, PostgreSQL, SQLAlchemy, Heroku, Jinja, RESTful APIs, JavaScript, HTML, CSS. Depending on your idea, you might end up using WTForms and other technologies discussed in the course.
-2. Every step of the project has submissions. This will alert your mentor to evaluate your work. Pay attention to the instructions so you submit the right thing. You will submit the link to your GitHub repo several times, this is for your mentor’s convenience. Your URL on GitHub is static and will not change.
-3. The first two steps require mentor approval to proceed, but after that, you are free to continue working on the project after you submit your work. For instance, you don’t need your mentor to approve your database schema before you start working on your site. Likewise, you don’t need your mentor to approve the first iteration of your site before you start polishing it.
-4. If you get stuck, there is a wealth of resources at your disposal. The course contains all of the material you will need to complete this project, but a well-phrased Google search might yield you an immediate solution to your problem. Don’t forget that your Slack community, TAs, and your mentor there to help you out.
-5. Make sure you use a free API and deploy your project on Heroku , so everyone can see your work!
+2. **Dashboard Overview**:
+   - View a snapshot of financial health, including budgets, goals, and recent spending trends.
+   - Access links to manage budgets or upload bank statements.
+
+3. **Manage Budgets**:
+   - Add, edit, or delete budget categories and set spending limits.
+
+4. **Track Financial Goals**:
+   - Set new goals, add funds, and track progress visually.
+
+5. **Upload Bank Statements**:
+   - Upload CSV or Excel files to import and categorize transactions automatically.
+
+6. **Visual Analytics**:
+   - Explore spending breakdowns and goal progress via interactive charts.
+
+---
+
+## **Technology Stack**
+
+### **Backend**
+- **Flask**: Used as the web framework for handling routes, forms, and rendering templates.
+- **SQLite**: Chosen for its lightweight, file-based database structure, ideal for this project.
+- **WTForms**: Simplifies form handling and validation.
+
+### **Frontend**
+- **Foundation CSS Framework**: Provides responsive layouts and styling for components.
+- **Chart.js**: Used to create interactive visualizations for spending and goals.
+- **Custom CSS**: Adds project-specific styles for a polished look.
+
+### **File Handling**
+- **Pandas**: Processes uploaded bank statements (CSV/Excel) for transaction import.
+
+### **Integration**
+- **Plaid API (Disabled)**:
+  - Was intended to enable seamless bank account linking.
+  - Currently replaced with the invoice upload feature for enhanced user control.
+
+---
+
+## **Notes on the Plaid API**
+
+- **Why Plaid API**:
+  - Provides robust financial integrations, allowing users to link bank accounts and fetch real-time transaction data.
+- **Challenges**:
+  - Configuration and authentication issues led to temporary deactivation.
+- **Future Plans**:
+  - May re-enable Plaid integration to complement the existing invoice upload feature.
+
+---
+
+## **Deployment**
+
+The project is deployed at: [https://yourwebsiteurl.com](https://yourwebsiteurl.com).
+
+### **Running Locally**
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/personal-finance-dashboard.git
