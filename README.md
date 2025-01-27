@@ -102,3 +102,26 @@ The project is deployed at: [https://yourwebsiteurl.com](https://yourwebsiteurl.
 1. Clone the repository:
    ```bash
    git clone https://github.com/yourusername/personal-finance-dashboard.git
+2. Create a virtual environment:
+   ```bash
+   - python -m venv venv
+3. Activate the virtual environment:
+   - on MacOS/Linux:
+   ```bash
+   source venv/bin/activate
+   - on Windows:
+   ```bash
+   venv\Scripts\activate
+4. Install dependencies
+   ```bash
+   pip install -r requirements.txt
+5. Initialize the database:
+   ```bash
+   flask shell
+   >>> from app import init_db
+   >>> init_db()
+   >>> exit()
+6. Run the app:
+   ```bash
+   python3 app.py
+
