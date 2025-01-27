@@ -1,10 +1,13 @@
 from webbrowser import get
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import sqlite3
 from forms import BudgetForm, TransactionForm, GoalForm
 from datetime import datetime
 import os
+import pandas as pd
+import sqlite3
 import plaid
 from plaid.api import plaid_api
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
@@ -71,7 +74,7 @@ def link_account():
       },
       client_name="Budg3t4You",
       products=[Products.AUTH, Products.TRANSACTIONS],
-      country_codes=[CountryCode.US],
+      country_codes=[CountryCode('US')],
       language='en',
       webhook='https://yourapp.com/webhook'
     )
@@ -171,6 +174,73 @@ def get_transactions():
     return jsonify (response.to_dict())
   except plaid.ApiException as e:
     return jsonify({"error": str(e)})
+
+##### INVOICE ROUTES #####
+def process_bank_statement(filepath):
+  """Parse and process the uploaded bank statement"""
+  try:
+    # Load file based on extension
+    if filepath.endswith('.csv'):
+      df = pd.read_csv(filepath) # Reads CSV file
+    elif filepath.endswith('xslx'):
+      df = pd.read_excel(filepath) # Reads Excel file
+    else:
+      raise ValueError("Unsupported file format")
+
+    # Process each row in the file
+    for index, row in df.iterrows():
+      # Replace 'Amount', 'Date', "Description" with actual column names in file
+      amount = row.get('Amount')
+      date = row.get('Date')
+      description = row.get('Description')
+
+      # Convert date to the required format if necessary
+      date = pd.to_datetime(date).strftime('%Y-%m-%d')
+
+      # Save transaction to the database
+      conn = get_db_connection()
+      cursor = conn.cursor()
+      cursor.execute(
+        "INSERT INTO BudgetTransactions (amount, date, description) VALUES (?, ?, ?)",
+        (amount, date, description)
+      )
+      conn.commit()
+      conn.close()
+    print("Bank statement processed successfully!")
+  except Exception as e:
+    print(f"Error processing bank statement: {e}")
+
+def allowed_file(filename):
+  """Check if the uploaded file has an allowed extension"""
+  allowed_extensions = {'csv', 'xlsx'} # Ability to add other extensions if needed
+  return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
+
+@app.route('/upload_statement', methods=['GET','POST'])
+def upload_statement():
+  if request.method == 'POST':
+    # Check if file is present
+    if 'file' not in request.files:
+      flash('No file uploaded', 'danger')
+      return redirect(request.url)
+
+    file = request.files['file']
+    if file.filename == '':
+      flash('No selected file', 'danger')
+      return redirect(request.url)
+
+    # Validate the file
+    if file and allowed_file(file.filename):
+      filename = secure_filename(file.filename)
+      filepath = os.path.join('uploads', filename)
+      file.save(filepath)
+
+      # Process the file
+      process_bank_statement(filepath)
+
+      flash('Bank statement uploaded successfully', 'success')
+      return redirect(url_for('dashboard'))
+      
+  return render_template('upload_statement.html')
 
 ##### USER ROUTES ######
 @app.route('/')
@@ -328,43 +398,47 @@ def delete_budget(budget_id):
 ##### TRANSACTIONS ROUTES #####
 @app.route('/budget/<int:budget_id>/add_transaction', methods=['GET', 'POST'])
 def add_transaction(budget_id):
-  """Add a transaction to a budget"""
-  if 'user_id' not in session:
-    return redirect(url_for('login'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
 
-  form = TransactionForm()
-  conn = get_db_connection()
-  cursor = conn.cursor()
+    form = TransactionForm()
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-  try:
-    cursor.execute("SELECT * FROM Budgets WHERE id = ? AND user_id = ?", (budget_id, session['user_id']))
-    budget = cursor.fetchone()
+    try:
+        cursor.execute("SELECT * FROM Budgets WHERE id = ? AND user_id = ?", (budget_id, session['user_id']))
+        budget = cursor.fetchone()
 
-    if not budget:
-      conn.close()
-      return "Budget not found or access denied", 404
+        if not budget:
+            flash("Budget not found or access denied", "danger")
+            return redirect(url_for('budget'))
 
-    if form.validate_on_submit():
-      amount = float(form.amount.data)
-      date = form.date.data
-      description = form.description.data
+        if form.validate_on_submit():
+            amount = float(form.amount.data)
+            date = form.date.data
+            description = form.description.data
 
-      cursor.execute(
-        "INSERT INTO BudgetTransactions (budget_id, amount, date, description) VALUES (?,?,?,?)",
-        (budget_id, amount,date, description)
-      )
-      conn.commit()
-      flash("Transaction added successfully!", "success")
-      return redirect(url_for('view_transactions', budget_id=budget_id))
-    elif request.method == 'POST':
-      flash("Please correct the form errors", "danger")
-  except sqlite3.Error as e:
-    conn.rollback()
-    flash(f"An error occurred while adding the transaction: {e}", "danger")
-  finally:
-    conn.close()
+            cursor.execute(
+                "INSERT INTO BudgetTransactions (budget_id, amount, date, description) VALUES (?, ?, ?, ?)",
+                (budget_id, amount, date, description)
+            )
 
-  return render_template('add_transaction.html', budget=budget, form=form)
+            cursor.execute(
+                "UPDATE Budgets SET amount_spent = amount_spent + ? WHERE id = ?",
+                (amount, budget_id)
+            )
+
+            conn.commit()
+            flash("Transaction added successfully!", "success")
+            return redirect(url_for('view_transactions', budget_id=budget_id))
+    except sqlite3.Error as e:
+        conn.rollback()
+        flash(f"An error occurred: {e}", "danger")
+    finally:
+        conn.close()
+
+    return render_template('add_transaction.html', form=form, budget=budget)
+
 
 @app.route('/budget/<int:budget_id>/transactions', methods=['GET', 'POST'])
 def view_transactions(budget_id):
@@ -443,70 +517,84 @@ def view_transactions(budget_id):
       order=order
   )
 
-@app.route('/budget/<int:budget_id>/edit_transaction/<int:transaction_id>', methods=['GET','POST'])
+@app.route('/budget/<int:budget_id>/edit_transaction/<int:transaction_id>', methods=['GET', 'POST'])
 def edit_transaction(budget_id, transaction_id):
-  """Edit an existing transaction"""
-  if 'user_id' not in session:
-    return redirect(url_for('login'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
 
-  conn = get_db_connection()
-  cursor = conn.cursor()
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-  cursor.execute(
-    """
-    SELECT * FROM BudgetTransactions
-    WHERE id = ? AND budget_id = ?
-    """, (transaction_id, budget_id)
-  )
-  transaction = cursor.fetchone()
+    try:
+        cursor.execute(
+            "SELECT * FROM BudgetTransactions WHERE id = ? AND budget_id = ?",
+            (transaction_id, budget_id)
+        )
+        transaction = cursor.fetchone()
 
-  if not transaction:
-    conn.close()
-    flash("Transaction not found or access denied", "danger")
-    return redirect(url_for('view_transactions', budget_id=budget_id))
+        if not transaction:
+            flash("Transaction not found or access denied", "danger")
+            return redirect(url_for('view_transactions', budget_id=budget_id))
 
-  if request.method == 'POST':
-    amount = float(request.form['amount'])
-    date = request.form['date']
-    description = request.form['description']
+        if request.method == 'POST':
+            new_amount = float(request.form['amount'])
+            amount_difference = new_amount - transaction['amount']
 
-    cursor.execute(
-      """
-      UPDATE Budget Transactions
-      SET amount = ?, date = ?, description = ?
-      WHERE id = ? AND budget_id = ?
-      """, (amount, date, description, transaction_id, budget_id)
-    )
-    conn.commit()
-    conn.close()
+            cursor.execute(
+                "UPDATE BudgetTransactions SET amount = ?, date = ?, description = ? WHERE id = ? AND budget_id = ?",
+                (new_amount, request.form['date'], request.form['description'], transaction_id, budget_id)
+            )
 
-    flash("Transaction updated successfully", "success")
-    return redirect(url_for('view_transactions', budget_id=budget_id))
-  conn.close()
-  return render_template('edit_transaction.html', transaction=transaction)
+            cursor.execute(
+                "UPDATE Budgets SET amount_spent = amount_spent + ? WHERE id = ?",
+                (amount_difference, budget_id)
+            )
+
+            conn.commit()
+            flash("Transaction updated successfully!", "success")
+            return redirect(url_for('view_transactions', budget_id=budget_id))
+    except sqlite3.Error as e:
+        conn.rollback()
+        flash(f"An error occurred: {e}", "danger")
+    finally:
+        conn.close()
+
+    return render_template('edit_transaction.html', transaction=transaction)
+
 
 @app.route('/budget/<int:budget_id>/delete_transaction/<int:transaction_id>', methods=['POST'])
 def delete_transaction(budget_id, transaction_id):
-  """Delete an existing transaction"""
-  if 'user_id' not in session:
-      return redirect(url_for('login'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
 
-  conn = get_db_connection()
-  cursor = conn.cursor()
-  cursor.execute("SELECT * FROM BudgetTransactions WHERE id = ? AND budget_id = ?", (transaction_id, budget_id))
-  transaction = cursor.fetchone()
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-  if not transaction:
-      conn.close()
-      flash("Transaction not found or access denied", "danger")
-      return redirect(url_for('view_transactions', budget_id=budget_id))
+    try:
+        cursor.execute("SELECT * FROM BudgetTransactions WHERE id = ? AND budget_id = ?", (transaction_id, budget_id))
+        transaction = cursor.fetchone()
 
-  cursor.execute("DELETE FROM BudgetTransactions WHERE id = ?", (transaction_id,))
-  conn.commit()
-  conn.close()
+        if not transaction:
+            flash("Transaction not found or access denied", "danger")
+            return redirect(url_for('view_transactions', budget_id=budget_id))
 
-  flash("Transaction deleted successfully", "success")
-  return redirect(url_for('view_transactions', budget_id=budget_id))
+        cursor.execute(
+            "UPDATE Budgets SET amount_spent = amount_spent - ? WHERE id = ?",
+            (transaction['amount'], budget_id)
+        )
+
+        cursor.execute("DELETE FROM BudgetTransactions WHERE id = ?", (transaction_id,))
+        conn.commit()
+        flash("Transaction deleted successfully!", "success")
+    except sqlite3.Error as e:
+        conn.rollback()
+        flash(f"An error occurred: {e}", "danger")
+    finally:
+        conn.close()
+
+    return redirect(url_for('view_transactions', budget_id=budget_id))
+
+
 
 @app.route('/budget/<int:budget_id>/transaction/<int:transaction_id>')
 def transaction_detail(budget_id, transaction_id):

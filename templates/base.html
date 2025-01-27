@@ -5,23 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Finance App{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/foundation-sites/dist/css/foundation.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/foundation-sites/dist/js/foundation.min.js" defer></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <header>
-        <nav class="navbar">
-            <a href="{{ url_for('home') }}">Home</a>
-            {% if 'user_id' in session %}
-                <a href="{{ url_for('budget') }}">Manage Budgets</a>
-                <a href="{{ url_for('dashboard') }}">Dashboard</a>
-                <a href="{{ url_for('logout') }}">Logout</a>
-            {% else %}
-                <a href="{{ url_for('register') }}">Register</a>
-                <a href="{{ url_for('login') }}">Login</a>
-            {% endif %}
+        <nav class="top-bar">
+            <div class="top-bar-left">
+                <ul class="dropdown menu" data-dropdown-menu>
+                    <li><a href="{{ url_for('home') }}">Home</a></li>
+                    {% if 'user_id' in session %}
+                        <li><a href="{{ url_for('budget') }}">Manage Budgets</a></li>
+                        <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                        <li><a href="{{ url_for('logout') }}">Logout</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('register') }}">Register</a></li>
+                        <li><a href="{{ url_for('login') }}">Login</a></li>
+                    {% endif %}
+                </ul>
+            </div>
         </nav>
     </header>
 
+    <main class="grid-container">
     {% with messages=get_flashed_messages(with_categories=True) %}
         {% if messages %}
             <ul class="flash-messages">
@@ -31,13 +39,13 @@
             </ul>
         {% endif %}
     {% endwith %}
-
-    <main>
-        {% block content %}{% endblock %}
+    {% block content %}{% endblock %}
     </main>
 
-    <footer>
-        <p>&copy; 2024 Personal Finance Management App. All Rights Reserved.</p>
+    <footer class="grid-x align-center">
+        <div class="cell text-center">
+            <p>&copy; 2024 Personal Finance Management App. All Rights Reserved.</p>
+        </div>
     </footer>
 </body>
 </html>

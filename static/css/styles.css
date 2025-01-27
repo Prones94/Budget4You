@@ -118,6 +118,13 @@ button:hover {
   border-radius: 4px;
 }
 
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  cursor: not-allowed;
+}
+
 .btn-danger {
   background-color: #dc3545;
 }
