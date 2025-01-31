@@ -13,3 +13,9 @@ class Budget(db.Model):
   category = db.Column(db.String(50), nullable=False)
   limit_amount = db.Column(db.Float, nullable=False)
   user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+def connect_db(app):
+  with app.app_context():
+    db.app = app
+    db.init_app(app)
+    db.create_all()
