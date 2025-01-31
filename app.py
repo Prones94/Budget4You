@@ -12,7 +12,7 @@ from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchan
 from plaid.model.link_token_create_request import LinkTokenCreateRequest
 from plaid.model.products import Products
 from plaid.model.country_code import CountryCode
-from models import db, User, Budget, Transaction, Goal
+from models.models import db, User, Budget, Transaction, Goal
 from forms import RegistrationForm, BudgetForm, TransactionForm, GoalForm
 
 # Load environment variables
@@ -41,6 +41,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize database
 db.init_app(app)
+
+with app.app_context():
+    db.create_all()
 
 @app.before_first_request
 def create_tables():
