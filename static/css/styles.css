@@ -1,8 +1,9 @@
 body {
   font-family: Arial, sans-serif;
+  padding-top: 60px; /* Adjust based on navbar height */
 }
 
-h1,h2 {
+h1, h2 {
   text-align: center;
 }
 
@@ -16,6 +17,19 @@ th, td {
   border: 1px solid #ddd;
   padding: 10px;
   text-align: center;
+}
+
+.navbar {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  background-color: white;
+  z-index: 1000;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 10px 0;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
 }
 
 .add-budget-form {
@@ -54,7 +68,7 @@ button:hover {
   color: #155724;
 }
 
-.flash-message.info {
+.flash-message.error {
   background-color: #f8d7da;
   color: #721c24;
 }
@@ -116,13 +130,6 @@ button:hover {
   color: #fff;
   text-decoration: none;
   border-radius: 4px;
-}
-
-.btn-secondary {
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  cursor: not-allowed;
 }
 
 .btn-danger {

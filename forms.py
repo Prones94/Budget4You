@@ -1,7 +1,17 @@
-from unicodedata import category
 from flask_wtf import FlaskForm
-from wtforms import StringField, DecimalField, DateField, TextAreaField, SubmitField
-from wtforms.validators import DataRequired, NumberRange, Length
+from wtforms import StringField, DecimalField, DateField, TextAreaField, SubmitField, PasswordField, EmailField
+from wtforms.validators import DataRequired, NumberRange, Length, Regexp
+
+class RegistrationForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired(), Length(min=4, max=50)])
+    email = EmailField('Email', validators=[DataRequired(), Length(max=120)])
+    password = PasswordField('Password', validators=[
+        DataRequired(),
+        Length(min=8, message="Password must be at least 8 characters."),
+        Regexp(r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$',
+               message="Password must contain at least one letter, one number, and one special character.")
+    ])
+    submit = SubmitField('Register')
 
 class BudgetForm(FlaskForm):
   category = StringField('Category', validators=[DataRequired(), Length(max=50)])
