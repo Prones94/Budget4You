@@ -2,8 +2,6 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
-import json
-import pandas as pd
 from dotenv import load_dotenv
 from datetime import datetime
 import plaid
@@ -12,7 +10,7 @@ from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchan
 from plaid.model.link_token_create_request import LinkTokenCreateRequest
 from plaid.model.products import Products
 from plaid.model.country_code import CountryCode
-from models.models import db, User, Budget, Transaction, Goal
+from models.models import db, User, Budget, connect_db
 from forms import RegistrationForm, BudgetForm, TransactionForm, GoalForm
 
 # Load environment variables
@@ -40,10 +38,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize database
-db.init_app(app)
-
-with app.app_context():
-    db.create_all()
+connect_db(app)
 
 @app.before_first_request
 def create_tables():
